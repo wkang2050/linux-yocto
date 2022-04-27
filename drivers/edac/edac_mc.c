@@ -988,10 +988,6 @@ void edac_raw_mc_handle_error(struct edac_raw_error_desc *e)
 	struct mem_ctl_info *mci = error_desc_to_mci(e);
 	u8 grain_bits;
 
-	/* Sanity-check driver-supplied grain value. */
-	if (WARN_ON_ONCE(!e->grain))
-		e->grain = 1;
-
 	grain_bits = fls_long(e->grain - 1);
 
 	/* Report the error via the trace interface */
@@ -1044,6 +1040,7 @@ void edac_mc_handle_error(const enum hw_event_mc_err_type type,
 	/* need valid strings here for both: */
 	e->msg = msg ?: "";
 	e->other_detail = other_detail ?: "";
+	e->grain = 1;
 
 	/*
 	 * Check if the event report is consistent and if the memory location is
