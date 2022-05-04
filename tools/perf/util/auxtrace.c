@@ -1329,6 +1329,7 @@ void itrace_synth_opts__set_default(struct itrace_synth_opts *synth_opts,
 	synth_opts->flc = true;
 	synth_opts->llc = true;
 	synth_opts->tlb = true;
+	synth_opts->mem = true;
 	synth_opts->remote_access = true;
 
 	if (no_sample) {
@@ -1471,6 +1472,9 @@ int itrace_parse_synth_opts(const struct option *opt, const char *str,
 		case 'o':
 			synth_opts->other_events = true;
 			break;
+		case 'M':
+			synth_opts->mem = true;
+			break;			
 		case 'e':
 			synth_opts->errors = true;
 			if (get_flags(&p, &synth_opts->error_plus_flags,
