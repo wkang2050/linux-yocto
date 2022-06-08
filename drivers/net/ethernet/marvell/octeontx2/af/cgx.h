@@ -39,6 +39,7 @@
 #define CGXX_CMRX_INT_ENA_W1S		0x058
 #define CGXX_CMRX_RX_ID_MAP		0x060
 #define CGXX_CMRX_RX_STAT0		0x070
+#define CGXX_CMRX_RX_STAT4		0x090
 #define CGXX_CMRX_RX_LOGL_XON		0x100
 #define CGXX_CMRX_RX_LMACS		0x128
 #define CGXX_CMRX_RX_DMAC_CTL0		(0x1F8 + mac_ops->csr_offset)
@@ -206,5 +207,6 @@ int verify_lmac_fc_cfg(void *cgxd, int lmac_id, u8 tx_pause, u8 rx_pause,
 		       int pfvf_idx);
 int cgx_lmac_reset(void *cgxd, int lmac_id);
 u8 cgx_lmac_get_p2x(int cgx_id, int lmac_id);
+u64 cgx_get_dmacflt_dropped_pktcnt(void *cgx, int lmac_id);
 
 #endif /* CGX_H */
