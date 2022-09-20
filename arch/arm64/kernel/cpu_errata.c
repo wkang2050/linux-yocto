@@ -64,7 +64,7 @@ static int arm_smcc_get_soc_id(u32 *soc_id_version, u32 *soc_id_rev)
 		return -EOPNOTSUPP;
 
 	switch (psci_ops.conduit) {
-	case PSCI_CONDUIT_HVC:
+	case SMCCC_CONDUIT_HVC:
 		arm_smccc_1_1_hvc(ARM_SMCCC_ARCH_FEATURES_FUNC_ID,
 				  ARM_SMCCC_ARCH_SOC_ID, &res);
 		if ((int)res.a0 < 0)
@@ -83,7 +83,7 @@ static int arm_smcc_get_soc_id(u32 *soc_id_version, u32 *soc_id_rev)
 		*soc_id_rev = res.a0;
 		break;
 
-	case PSCI_CONDUIT_SMC:
+	case SMCCC_CONDUIT_SMC:
 		arm_smccc_1_1_smc(ARM_SMCCC_ARCH_FEATURES_FUNC_ID,
 				  ARM_SMCCC_ARCH_SOC_ID, &res);
 		if ((int)res.a0 < 0)
