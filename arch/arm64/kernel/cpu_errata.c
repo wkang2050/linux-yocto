@@ -60,10 +60,10 @@ static int arm_smcc_get_soc_id(u32 *soc_id_version, u32 *soc_id_rev)
 {
 	struct arm_smccc_res res;
 
-	if (psci_ops.smccc_version == ARM_SMCCC_VERSION_1_0)
+	if (arm_smccc_get_version() == ARM_SMCCC_VERSION_1_0)
 		return -EOPNOTSUPP;
 
-	switch (psci_ops.conduit) {
+	switch (arm_smccc_1_1_get_conduit()) {
 	case SMCCC_CONDUIT_HVC:
 		arm_smccc_1_1_hvc(ARM_SMCCC_ARCH_FEATURES_FUNC_ID,
 				  ARM_SMCCC_ARCH_SOC_ID, &res);
