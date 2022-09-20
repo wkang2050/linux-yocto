@@ -60,7 +60,7 @@ static int arm_smcc_get_soc_id(u32 *soc_id_version, u32 *soc_id_rev)
 {
 	struct arm_smccc_res res;
 
-	if (psci_ops.smccc_version == SMCCC_VERSION_1_0)
+	if (psci_ops.smccc_version == ARM_SMCCC_VERSION_1_0)
 		return -EOPNOTSUPP;
 
 	switch (psci_ops.conduit) {
