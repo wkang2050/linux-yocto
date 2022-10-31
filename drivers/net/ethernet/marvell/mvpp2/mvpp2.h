@@ -1720,6 +1720,7 @@ void mvpp2_dbgfs_cleanup(struct mvpp2 *priv);
 void mvpp23_rx_fifo_fc_en(struct mvpp2 *priv, int port, bool en);
 u32 mvpp2_get_tc_width(struct mvpp2_port *port);
 int  mvpp22_rss_fill_table_per_tc(struct mvpp2_port *port);
+void mvpp2_dbgfs_exit(void);
 
 #ifdef CONFIG_MVPP2_PTP
 int mvpp22_tai_probe(struct device *dev, struct mvpp2 *priv);
