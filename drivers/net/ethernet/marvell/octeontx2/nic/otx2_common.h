@@ -18,6 +18,7 @@
 #include <net/devlink.h>
 #include <linux/time64.h>
 #include <linux/dim.h>
+#include <uapi/linux/if_macsec.h>
 
 #include <mbox.h>
 #include <npc.h>
@@ -35,6 +36,7 @@
 
 #define PCI_SUBSYS_DEVID_96XX_RVU_PFVF		0xB200
 #define PCI_SUBSYS_DEVID_95XX_RVU_PFVF		0xB200
+#define PCI_SUBSYS_DEVID_CN10K_B_RVU_PFVF	0xBD00
 
 /* PCI BAR nos */
 #define PCI_CFG_REG_BAR_NUM                     2
@@ -245,6 +247,7 @@ struct otx2_hw {
 #define CN10K_LMTST		2
 #define CN10K_RPM		3
 #define CN10K_PTP_ONESTEP	4
+#define CN10K_HW_MACSEC	5
 	unsigned long		cap_flag;
 
 #define LMT_LINE_SIZE		128
@@ -361,6 +364,66 @@ struct dev_hw_ops {
 	void	(*aura_freeptr)(void *dev, int aura, u64 buf);
 };
 
+#define CN10K_MCS_SA_PER_SC	4
+
+/* Stats which need to be accumulated in software because
+ * of shared counters in hardware.
+ */
+struct cn10k_txsc_stats {
+	u64 InPktsUntagged;
+	u64 InPktsNoTag;
+	u64 InPktsBadTag;
+	u64 InPktsUnknownSCI;
+	u64 InPktsNoSCI;
+	u64 InPktsOverrun;
+};
+
+struct cn10k_rxsc_stats {
+	u64 InOctetsValidated;
+	u64 InOctetsDecrypted;
+	u64 InPktsUnchecked;
+	u64 InPktsDelayed;
+	u64 InPktsOK;
+	u64 InPktsInvalid;
+	u64 InPktsLate;
+	u64 InPktsNotValid;
+	u64 InPktsNotUsingSA;
+	u64 InPktsUnusedSA;
+};
+
+struct cn10k_mcs_txsc {
+	struct macsec_secy *sw_secy;
+	struct cn10k_txsc_stats stats;
+	struct list_head entry;
+	enum macsec_validation_type last_validate_frames;
+	bool last_protect_frames;
+	u16 hw_secy_id_tx;
+	u16 hw_secy_id_rx;
+	u16 hw_flow_id;
+	u16 hw_sc_id;
+	u16 hw_sa_id[CN10K_MCS_SA_PER_SC];
+	u8 sa_bmap;
+	u8 sa_key[CN10K_MCS_SA_PER_SC][MACSEC_MAX_KEY_LEN];
+	u8 encoding_sa;
+};
+
+struct cn10k_mcs_rxsc {
+	struct macsec_secy *sw_secy;
+	struct macsec_rx_sc *sw_rxsc;
+	struct cn10k_rxsc_stats stats;
+	struct list_head entry;
+	u16 hw_flow_id;
+	u16 hw_sc_id;
+	u16 hw_sa_id[CN10K_MCS_SA_PER_SC];
+	u8 sa_bmap;
+	u8 sa_key[CN10K_MCS_SA_PER_SC][MACSEC_MAX_KEY_LEN];
+};
+
+struct cn10k_mcs_cfg {
+	struct list_head txsc_list;
+	struct list_head rxsc_list;
+};
+
 struct otx2_nic {
 	void __iomem		*reg_base;
 	struct net_device	*netdev;
@@ -472,6 +535,10 @@ struct otx2_nic {
 
 	/* napi event count. It is needed for adaptive irq coalescing */
 	u32 napi_events;
+
+#if IS_ENABLED(CONFIG_MACSEC)
+	struct cn10k_mcs_cfg	*macsec_cfg;
+#endif
 };
 
 static inline bool is_otx2_lbkvf(struct pci_dev *pdev)
@@ -520,6 +587,11 @@ static inline bool is_dev_otx2(struct pci_dev *pdev)
 		midr == PCI_REVISION_ID_95XXMM || midr == PCI_REVISION_ID_95XXO);
 }
 
+static inline bool is_dev_cn10kb(struct pci_dev *pdev)
+{
+	return pdev->subsystem_device == PCI_SUBSYS_DEVID_CN10K_B_RVU_PFVF;
+}
+
 static inline void otx2_setup_dev_hw_settings(struct otx2_nic *pfvf)
 {
 	struct otx2_hw *hw = &pfvf->hw;
@@ -560,6 +632,9 @@ static inline void otx2_setup_dev_hw_settings(struct otx2_nic *pfvf)
 		__set_bit(CN10K_RPM, &hw->cap_flag);
 		__set_bit(CN10K_PTP_ONESTEP, &hw->cap_flag);
 	}
+
+	if (is_dev_cn10kb(pfvf->pdev))
+		__set_bit(CN10K_HW_MACSEC, &hw->cap_flag);
 }
 
 /* Register read/write APIs */
@@ -815,6 +890,7 @@ otx2_mbox_up_handler_ ## _fn_name(struct otx2_nic *pfvf,		\
 				struct _rsp_type *rsp);			\
 
 MBOX_UP_CGX_MESSAGES
+MBOX_UP_MCS_MESSAGES
 #undef M
 
 /* Time to wait before watchdog kicks off */
@@ -1012,4 +1088,18 @@ int otx2_dcbnl_set_ops(struct net_device *dev);
 #endif
 /* qos support */
 void otx2_qos_sq_setup(struct otx2_nic *pfvf, int qos_txqs);
+
+#if IS_ENABLED(CONFIG_MACSEC)
+/* MACSEC offload support */
+int cn10k_mcs_init(struct otx2_nic *pfvf);
+void cn10k_mcs_free(struct otx2_nic *pfvf);
+void cn10k_handle_mcs_event(struct otx2_nic *pfvf, struct mcs_intr_info *event);
+#else
+static inline int cn10k_mcs_init(struct otx2_nic *pfvf) { return 0; }
+static inline void cn10k_mcs_free(struct otx2_nic *pfvf) {}
+static inline void cn10k_handle_mcs_event(struct otx2_nic *pfvf,
+					  struct mcs_intr_info *event)
+{}
+#endif /* CONFIG_MACSEC */
+
 #endif /* OTX2_COMMON_H */
