@@ -5912,6 +5912,11 @@ static int mvpp2_change_mtu(struct net_device *dev, int mtu)
 			port->pkt_size =  MVPP2_RX_PKT_SIZE(mtu);
 			return 0;
 		}
+
+		/* Return error in case of no memory */
+		if (err == -ENOMEM)
+			goto log_error;
+
 		/* Reconfigure BM to the original MTU */
 		err = mvpp2_bm_update_mtu(dev, dev->mtu);
 		if (err)
@@ -5925,6 +5930,10 @@ static int mvpp2_change_mtu(struct net_device *dev, int mtu)
 		port->pkt_size =  MVPP2_RX_PKT_SIZE(mtu);
 		goto out_start;
 	}
+
+	/* Return error in case of no memory */
+	if (err == -ENOMEM)
+		goto log_error;
 
 	/* Reconfigure BM to the original MTU */
 	err = mvpp2_bm_update_mtu(dev, dev->mtu);
