@@ -258,13 +258,14 @@ static struct pci_ecam_ops pci_octeontx_ecam_ops = {
 };
 
 static const struct of_device_id octeontx_ecam_of_match[] = {
-	{ .compatible = "cavium,pci-host-octeontx-ecam" },
+	{ .compatible = "cavium,pci-host-octeontx-ecam",
+	  .data = &pci_octeontx_ecam_ops },
 	{ },
 };
 
 static int octeontx_ecam_probe(struct platform_device *pdev)
 {
-	return pci_host_common_probe(pdev, &pci_octeontx_ecam_ops);
+	return pci_host_common_probe(pdev);
 }
 
 static struct platform_driver octeontx_ecam_driver = {
