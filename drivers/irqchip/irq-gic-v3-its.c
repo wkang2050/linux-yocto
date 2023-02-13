@@ -4679,7 +4679,8 @@ static bool __maybe_unused its_enable_quirk_mrvl_35443(void *data)
 	struct its_node *its = data;
 
 	/* Erratum 35443:  20bits, alloc 8MB table size */
-	its->device_ids = 0x14;
+	its->typer &= ~GITS_TYPER_DEVBITS;
+	its->typer |= FIELD_PREP(GITS_TYPER_DEVBITS, 20 - 1);
 
 	return true;
 }
