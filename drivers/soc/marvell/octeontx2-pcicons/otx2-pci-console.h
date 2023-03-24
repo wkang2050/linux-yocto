@@ -56,7 +56,7 @@ struct octeontx_pcie_console_nexus {
 	u8                    num_consoles;
 	arch_spinlock_t            excl_lock;
 #ifdef CONFIG_PREEMPT_RT
-	u32                   pad_excl_lock;
+	u32                   pad_excl_lock[12];
 #else
 	u32                   pad_excl_lock[12];
 #endif
